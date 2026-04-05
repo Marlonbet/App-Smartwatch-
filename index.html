@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Servicio App</title>
+    <style>
+        /* Diseño base minimalista y oscuro (Smartwatch) */
+        :root {
+            --bg: #000000;
+            --surface: #1c1c1e;
+            --text: #ffffff;
+            --text-muted: #8e8e93;
+            --accent: #0a84ff;
+            --pase: #30d158;
+            --reten: #ffd60a;
+            --guardia: #ff453a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; font-size: 14px; }
+
+        /* Contenedor principal de vistas */
+        #content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 70px; }
+
+        /* Vistas (Tabs) */
+        .view { display: none; animation: fadeIn 0.3s; }
+        .view.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Tipografía y Elementos */
+        h2 { font-size: 18px; margin-bottom: 10px; text-align: center; font-weight: 600; }
+        .card { background: var(--surface); border-radius: 12px; padding: 15px; margin-bottom: 10px; text-align: center; }
+        
+        .cycle-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+        .cycle-value { font-size: 24px; font-weight: bold; margin: 5px 0; }
+        .cycle-date { font-size: 12px; color: var(--text-muted); }
+
+        /* Colores dinámicos para los ciclos */
+        .c-pase { color: var(--pase); }
+        .c-reten { color: var(--reten); }
+        .c-guardia { color: var(--guardia); }
+
+        /* Formularios */
+        label { display: block; text-align: left; font-size: 12px; color: var(--text-muted); margin: 10px 0 5px; }
+        input[type="date"], select, button { width: 100%; background: #2c2c2e; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 14px; outline: none; }
+        button { background: var(--accent); font-weight: bold; margin-top: 15px; }
+        button:active { opacity: 0.8; }
+
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #2c2c2e; }
+        th { color: var(--text-muted); font-weight: normal; }
+        td:last-child { text-align: right; }
+
+        /* Navegación inferior */
+        nav { display: flex; position: fixed; bottom: 0; width: 100%; background: rgba(28, 28, 30, 0.9); backdrop-filter: blur(10px); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+        .nav-item { flex: 1; text-align: center; padding: 12px 0; color: var(--text-muted); font-size: 20px; text-decoration: none; }
+        .nav-item.active { color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div id="content">
+        <div id="view-home" class="view active">
+            <div class="card" id="card-hoy">
+                <div class="cycle-title">HOY</div>
+                <div class="cycle-value" id="val-hoy">--</div>
+                <div class="cycle-date" id="date-hoy">--</div>
+            </div>
+            <div class="card" style="opacity: 0.8;" id="card-manana">
+                <div class="cycle-title">MAÑANA</div>
+                <div class="cycle-value" id="val-manana">--</div>
+            </div>
+            <div class="card" style="opacity: 0.6;" id="card-pasado">
+                <div class="cycle-title">PASADO</div>
+                <div class="cycle-value" id="val-pasado">--</div>
+            </div>
+        </div>
+
+        <div id="view-time" class="view">
+            <h2>Fin del SMA</h2>
+            <div class="card">
+                <div class="cycle-title">TIEMPO RESTANTE</div>
+                <div class="cycle-value" id="time-left" style="font-size: 20px; color: var(--accent);">--</div>
+            </div>
+            <label>Fecha de Baja (Configuración):</label>
+            <input type="date" id="end-date" onchange="saveEndDate()">
+        </div>
+
+        <div id="view-log" class="view">
+            <h2>Registro de Hoy</h2>
+            <label>Marcha (Día):</label>
+            <select id="log-dia">
+                <option value="">Seleccionar...</option>
+                <option value="Martí">Martí</option>
+                <option value="Céspedes">Céspedes</option>
+                <option value="Comandante">Comandante</option>
+                <option value="Mariana">Mariana</option>
+            </select>
+
+            <label>Guardia (Noche):</label>
+            <select id="log-noche">
+                <option value="">Seleccionar...</option>
+                <option value="Pasillo">Pasillo</option>
+                <option value="Bombillo">Bombillo</option>
+                <option value="Martí">Martí</option>
+                <option value="Comandante">Comandante</option>
+                <option value="Mariana">Mariana</option>
+                <option value="AM">AM</option>
+            </select>
+
+            <button onclick="saveLog()">Guardar Registro</button>
+            <div id="log-msg" style="color: var(--pase); font-size: 12px; margin-top: 10px; text-align: center;"></div>
+        </div>
+
+        <div id="view-stats" class="view">
+            <h2>Estadísticas</h2>
+            <div class="card">
+                <div class="cycle-title" style="text-align:left;">POSICIONES (TOTALES)</div>
+                <table>
+                    <tbody id="stats-table">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav>
+        <div class="nav-item active" onclick="switchView('home', this)">🗓️</div>
+        <div class="nav-item" onclick="switchView('time', this)">⏳</div>
+        <div class="nav-item" onclick="switchView('log', this)">📝</div>
+        <div class="nav-item" onclick="switchView('stats', this)">📊</div>
+    </nav>
+
+    <script>
+        // --- LÓGICA DE NAVEGACIÓN ---
+        function switchView(viewId, element) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            element.classList.add('active');
+            if(viewId === 'stats') renderStats();
+        }
+
+        // --- LÓGICA DE CICLOS (Pase -> Retén -> Guardia) ---
+        const ciclos = [
+            { nombre: "PASE", clase: "c-pase" },
+            { nombre: "RETÉN", clase: "c-reten" },
+            { nombre: "GUARDIA", clase: "c-guardia" }
+        ];
+
+        function getEpochDays(date) {
+            // Ajustar zona horaria local
+            return Math.floor((date.getTime() - date.getTimezoneOffset() * 60000) / 86400000);
+        }
+
+        function initCycles() {
+            // Si es la primera vez que se abre, fija hoy como "Pase" (Ciclo 0)
+            let baseDay = localStorage.getItem('baseEpoch');
+            const todayEpoch = getEpochDays(new Date());
+
+            if (!baseDay) {
+                localStorage.setItem('baseEpoch', todayEpoch);
+                baseDay = todayEpoch;
+            }
+
+            const diff = todayEpoch - parseInt(baseDay);
+            // El módulo maneja ciclos positivos y si es negativo por alguna razón, se ajusta.
+            const todayIndex = ((diff % 3) + 3) % 3; 
+
+            renderCycleCard('hoy', todayIndex, new Date());
+            
+            let tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+            renderCycleCard('manana', (todayIndex + 1) % 3, tomorrow);
+
+            let pasado = new Date(); pasado.setDate(pasado.getDate() + 2);
+            renderCycleCard('pasado', (todayIndex + 2) % 3, pasado);
+        }
+
+        function renderCycleCard(idSuffix, cycleIndex, dateObj) {
+            const valEl = document.getElementById(`val-${idSuffix}`);
+            valEl.textContent = ciclos[cycleIndex].nombre;
+            valEl.className = `cycle-value ${ciclos[cycleIndex].clase}`;
+            
+            if (idSuffix === 'hoy') {
+                const options = { weekday: 'short', month: 'short', day: 'numeric' };
+                document.getElementById('date-hoy').textContent = dateObj.toLocaleDateString('es-ES', options).toUpperCase();
+            }
+        }
+
+        // --- LÓGICA DE TIEMPO RESTANTE SMA ---
+        function initTime() {
+            const savedDate = localStorage.getItem('endDate');
+            if (savedDate) {
+                document.getElementById('end-date').value = savedDate;
+                calculateTimeLeft(new Date(savedDate));
+            }
+        }
+
+        function saveEndDate() {
+            const dateVal = document.getElementById('end-date').value;
+            if (dateVal) {
+                localStorage.setItem('endDate', dateVal);
+                calculateTimeLeft(new Date(dateVal));
+            }
+        }
+
+        function calculateTimeLeft(endDate) {
+            const now = new Date();
+            if (endDate <= now) {
+                document.getElementById('time-left').textContent = "¡SERVICIO CUMPLIDO!";
+                return;
+            }
+
+            let months = (endDate.getFullYear() - now.getFullYear()) * 12;
+            months -= now.getMonth();
+            months += endDate.getMonth();
+            
+            let days = endDate.getDate() - now.getDate();
+            if (days < 0) {
+                months--;
+                // Calcular días del mes anterior
+                let prevMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+
+            document.getElementById('time-left').textContent = `${months} Meses, ${days} Días`;
+        }
+
+        // --- LÓGICA DE REGISTRO Y ESTADÍSTICAS ---
+        function getTodayKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function loadTodayLog() {
+            const logs = JSON.parse(localStorage.getItem('sma_logs') || '{}');
+            const today = getTodayKey();
+            if(logs[today]) {
+                document.getElementById('log-dia').value = logs[today].dia || "";
+                document.getElementById('log-noche').value = logs[today].noche || "";
+            }
+        }
+
+        function saveLog() {
+            const diaVal = document.getElementById('log-dia').value;
+            const nocheVal = document.getElementById('log-noche').value;
+            
+            const logs = JSON.parse(localStorage.getItem('sma_logs') || '{}');
+            logs[getTodayKey()] = { dia: diaVal, noche: nocheVal };
+            
+            localStorage.setItem('sma_logs', JSON.stringify(logs));
+            
+            const msg = document.getElementById('log-msg');
+            msg.textContent = "Guardado correctamente ✔";
+            setTimeout(() => msg.textContent = "", 2000);
+        }
+
+        function renderStats() {
+            const logs = JSON.parse(localStorage.getItem('sma_logs') || '{}');
+            const counts = {};
+
+            // Contar ocurrencias
+            Object.values(logs).forEach(log => {
+                if(log.dia) counts[log.dia] = (counts[log.dia] || 0) + 1;
+                if(log.noche) counts[log.noche] = (counts[log.noche] || 0) + 1;
+            });
+
+            const tbody = document.getElementById('stats-table');
+            tbody.innerHTML = '';
+
+            const keys = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+            
+            if(keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay datos aún</td></tr>';
+                return;
+            }
+
+            keys.forEach(key => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${key}</td><td>${counts[key]}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- INICIALIZACIÓN ---
+        window.onload = () => {
+            initCycles();
+            initTime();
+            loadTodayLog();
+        };
+    </script>
+</body>
+              </html>
+              
